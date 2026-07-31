@@ -8,8 +8,19 @@ Official implementation of EMBC-Net, an edge-aware multi-scale collaborative enh
 
 # Usage
 
-Recommended environment: Python 3.8, PyTorch 1.11.0, torchvision 0.12.0.<br>
+Recommended environment: 
+
+
+Python 3.8
+
+PyTorch 1.11.0
+
+torchvision 0.12.0.<br>
+
+
 Polyp datasets can be downloaded from [Google Drive](https://drive.google.com/file/d/1pFxb9NbM8mj_rlSawTlcXG1OdVGAbRQC/view?pli=1) and should be placed in the `./data/polyp/` directory.<br>
+
+
 The PVTv2-B2 backbone is initialized with ImageNet-1K pre-trained weights.<br>
 
 
