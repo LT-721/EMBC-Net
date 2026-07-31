@@ -24,10 +24,17 @@ Polyp datasets can be downloaded from [Google Drive](https://drive.google.com/fi
 The PVTv2-B2 backbone is initialized with ImageNet-1K pre-trained weights.<br>
 
 
-Training command: `CUDA_VISIBLE_DEVICES=0 python -W ignore train_polyp.py`.<br>
+# Training command: 
 
 
-Testing command: `CUDA_VISIBLE_DEVICES=0 python -W ignore test_polyp.py`.
+`CUDA_VISIBLE_DEVICES=0 python -W ignore train_polyp.py`.<br>
+
+
+# Testing command: 
+
+
+`CUDA_VISIBLE_DEVICES=0 python -W ignore test_polyp.py`.
+
 
 # License
 
