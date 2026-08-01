@@ -368,24 +368,111 @@ class CAM(nn.Module):
         out = self.output_conv(combined)
         return out
 
-class Attention41(nn.Module):
-    def __init__(self, in_channels):
-        super(Attention41, self).__init__()
-        self.psi = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels // 2, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(in_channels // 2),
+class BS(nn.Module):
+
+    def __init__(self, high_channels, low_channels, reduction_ratio=16, use_deformable=True):
+        super().__init__()
+        self.use_deformable = use_deformable
+
+        # 通道对齐
+        self.align_high = nn.Sequential(
+            nn.Conv2d(high_channels, low_channels, 1),
+            nn.BatchNorm2d(low_channels),
+            nn.ReLU(inplace=True)
+        )
+
+        self.semantic_attention = nn.Sequential(
+            nn.Conv2d(low_channels * 2, low_channels, 3, padding=1),
+            nn.BatchNorm2d(low_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels // 2, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.Conv2d(low_channels, low_channels, 3, padding=1),
             nn.Sigmoid()
         )
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 2, kernel_size=1, stride=1, padding=0, bias=True)
-    def forward(self, x):
-        fused = self.psi(x)
-        out1 = x * fused
-        out2 = 1 - fused
-        out2 = x * out2
-        out = self.conv1(out2 + out1)
-        return out
+
+
+        if use_deformable:
+            self.offset_conv = nn.Conv2d(low_channels * 2, 2 * 3 * 3, 3, padding=1)
+            self.deform_align = DeformConv2d(low_channels, low_channels)
+        else:
+            self.align_conv = nn.Sequential(
+                nn.Conv2d(low_channels * 2, low_channels, 3, padding=1),
+                nn.BatchNorm2d(low_channels),
+                nn.ReLU(inplace=True)
+            )
+
+
+        self.gate_low = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(low_channels, low_channels // reduction_ratio, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(low_channels // reduction_ratio, low_channels, 1),
+            nn.Sigmoid()
+        )
+
+        self.gate_high = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(low_channels, low_channels // reduction_ratio, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(low_channels // reduction_ratio, low_channels, 1),
+            nn.Sigmoid()
+        )
+
+
+        self.fusion_conv = nn.Sequential(
+            nn.Conv2d(low_channels * 3, low_channels, 3, padding=1),
+            nn.BatchNorm2d(low_channels),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, high_feat, low_feat):
+
+        B, C_l, H_l, W_l = low_feat.shape
+
+        high_aligned = self.align_high(high_feat)
+        high_aligned = F.interpolate(
+            high_aligned, size=(H_l, W_l),
+            mode='bilinear', align_corners=True
+        )
+
+        attention_map = self.semantic_attention(
+            torch.cat([high_aligned, low_feat], dim=1)
+        )
+        low_att = attention_map * low_feat
+
+        if self.use_deformable:
+            offset_input = torch.cat([high_aligned, low_att], dim=1)
+            offset = self.offset_conv(offset_input)
+            B, _, H, W = offset.shape
+            offset = offset.view(B, 2, 3, 3, H, W)
+            offset = offset.mean(dim=[2, 3])  # 平均偏移
+
+            grid_h, grid_w = torch.meshgrid(
+                torch.linspace(-1, 1, H_l, device=high_aligned.device),
+                torch.linspace(-1, 1, W_l, device=high_aligned.device),
+                indexing='ij'
+            )
+            grid = torch.stack([grid_w, grid_h], dim=-1).unsqueeze(0)  # [1, H, W, 2]
+            grid = grid.expand(B, -1, -1, -1)  # [B, H, W, 2]
+
+            grid = grid + offset.permute(0, 2, 3, 1) * 0.1  # 缩放偏移量
+
+            high_aligned = F.grid_sample(
+                high_aligned, grid, align_corners=True, mode='bilinear'
+            )
+        else:
+            high_aligned = self.align_conv(
+                torch.cat([high_aligned, low_att], dim=1)
+            )
+
+        gate_low = self.gate_low(low_att)
+        gate_high = self.gate_high(high_aligned)
+        gated_low = gate_low * low_att
+        gated_high = gate_high * high_aligned
+
+        fused = torch.cat([low_feat, gated_low, gated_high], dim=1)
+        enhanced = self.fusion_conv(fused)
+
+        return enhanced
 
 
 class EnhancedBoundaryAttentionP2P3(nn.Module):
@@ -541,21 +628,19 @@ class CASCADE(nn.Module):
         self.DOWN = Down(in_channels=channels[2], out_channels=channels[1])
         self.jh23 = EnhancedBoundaryAttentionP2P3(channels_p1=channels[0], channels_p3=channels[2])
 
-        self.attention41 = Attention41(in_channels=channels[3] * 2)
+        self.attention41 = BS(high_channels=channels[0], low_channels=channels[3])
 
 
     def forward(self, x, skips):
         d40 = self.Conv_1x1(x)
         d4 = self.ConvBlock4(d40)
-        d4to1 = self.uc3(d4)
         x3 = self.AG3(x=skips[0])
         d31 = self.CAM3(x3)
         x2 = self.AG2(x=skips[1])
         d21 = self.CAM2(x2)
         x1 = self.AG1(x=skips[2])
         d11 = self.CAM1(x1)
-        d12 = torch.cat([d11, d4to1], dim=1)
-        d1 = self.attention41(d12)
+        d1 = self.attention41(low_feat=d11, high_feat=d4)
         d32, d22 = self.jh23(d4, d21)
         d3 = d31
         d2 = d22 + d21
