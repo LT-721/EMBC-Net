@@ -11,7 +11,7 @@ from torch.nn.modules.loss import CrossEntropyLoss
 
 import matplotlib.pyplot as plt
 
-from lib.networks2 import PVT_CASCADE
+from lib.networks2 import EMBC-Net
 from utils.dataloader import get_loader, test_dataset
 from utils.utils import clip_gradient, adjust_lr, AvgMeter
 import random  # Python内置随机库
@@ -108,7 +108,7 @@ def test(model, path, dataset):
     return DSC / num1, num1
 
 
-def train(train_loader, model, optimizer, epoch, test_path, model_name='PVT-CASCADE'):
+def train(train_loader, model, optimizer, epoch, test_path, model_name='EMBC-Net'):
     model.train()
     global best
     size_rates = [0.75, 1, 1.25]
@@ -200,7 +200,7 @@ if __name__ == '__main__':
                  'test': []}
     name = ['CVC-300', 'CVC-ClinicDB', 'Kvasir', 'CVC-ColonDB', 'ETIS-LaribPolypDB', 'test']
     ##################model_name#############################
-    model_name = 'PolypPVT-CASCADE'
+    model_name = 'EMBC-Net'
     ###############################################
     parser = argparse.ArgumentParser()
 
@@ -251,7 +251,7 @@ if __name__ == '__main__':
 
     # ---- build models ----
     # torch.cuda.set_device(2)  # set your gpu device
-    model = PVT_CASCADE()
+    model = EMBC-Net()
     model.cuda()
 
     best = 0
