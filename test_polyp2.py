@@ -5,11 +5,11 @@ import os, argparse
 from scipy import misc
 import cv2
 
-from lib.networks2 import PVT_CASCADE
+from lib.networks2 import EMBC_Net
 from utils.dataloader import test_dataset
 
 if __name__ == '__main__':
-    method_name = 'PolypPVT-CASCADE'
+    method_name = 'EMBC_Net'
     parser = argparse.ArgumentParser()
     parser.add_argument('--testsize', type=int, default=352, help='testing size')
     # 使用最佳权重进行训练
@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     # torch.cuda.set_device(0)  # set your gpu device
 
-    model = PVT_CASCADE()
+    model = EMBC_Net()
     model.cuda()
     model.load_state_dict(torch.load(opt.pth_path))
 
