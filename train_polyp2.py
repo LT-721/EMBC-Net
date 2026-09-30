@@ -11,12 +11,13 @@ from torch.nn.modules.loss import CrossEntropyLoss
 
 import matplotlib.pyplot as plt
 
-from lib.networks2 import PVT_CASCADE
+from lib.networks2 import EMBC_Net
 from utils.dataloader import get_loader, test_dataset
 from utils.utils import clip_gradient, adjust_lr, AvgMeter
 import random  # Python内置随机库
-import os      # 操作系统接口库
-import torch   # PyTorch深度学习框架
+import os  # 操作系统接口库
+import torch  # PyTorch深度学习框架
+
 
 def set_seed(seed):
     """设置所有可能用到的随机种子以确保可复现性"""
@@ -29,9 +30,9 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True  # 确保每次返回的卷积算法是确定的，如果不设置这个选项，可能因为cudnn的优化而使得计算结果不可复现
     torch.backends.cudnn.benchmark = False  # 当网络输入数据维度或类型上变化不大时，设置为True可以增加运行效率
 
+
 seed = 42  # 或者其他你喜欢的数字
 set_seed(seed)
-
 
 
 def structure_loss(pred, mask):
@@ -108,7 +109,7 @@ def test(model, path, dataset):
     return DSC / num1, num1
 
 
-def train(train_loader, model, optimizer, epoch, test_path, model_name='PVT-CASCADE'):
+def train(train_loader, model, optimizer, epoch, test_path, model_name='EMBC_Net'):
     model.train()
     global best
     size_rates = [0.75, 1, 1.25]
@@ -191,16 +192,13 @@ def train(train_loader, model, optimizer, epoch, test_path, model_name='PVT-CASC
             # 路径2：保存带epoch编号的历史最佳模型（备份）
             torch.save(model.state_dict(), save_path + str(epoch) + '' + model_name + '-best.pth')
 
-        
-
-
 
 if __name__ == '__main__':
     dict_plot = {'CVC-300': [], 'CVC-ClinicDB': [], 'Kvasir': [], 'CVC-ColonDB': [], 'ETIS-LaribPolypDB': [],
                  'test': []}
     name = ['CVC-300', 'CVC-ClinicDB', 'Kvasir', 'CVC-ColonDB', 'ETIS-LaribPolypDB', 'test']
     ##################model_name#############################
-    model_name = 'PolypPVT-CASCADE'
+    model_name = 'EMBC_Net'
     ###############################################
     parser = argparse.ArgumentParser()
 
@@ -251,7 +249,7 @@ if __name__ == '__main__':
 
     # ---- build models ----
     # torch.cuda.set_device(2)  # set your gpu device
-    model = PVT_CASCADE()
+    model = EMBC_Net()
     model.cuda()
 
     best = 0
@@ -276,4 +274,3 @@ if __name__ == '__main__':
     for epoch in range(1, opt.epoch):
         adjust_lr(optimizer, opt.lr, epoch, opt.decay_rate, opt.decay_epoch)
         train(train_loader, model, optimizer, epoch, opt.test_path, model_name=model_name)
-
