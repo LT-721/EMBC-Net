@@ -5,9 +5,9 @@ from torch.utils.checkpoint import checkpoint
 import torch.nn.functional as F
 from torch.nn import init
 
-import random 
-import os     
-import torch   
+import random
+import os
+import torch
 
 
 from PIL import Image
@@ -16,24 +16,6 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import scipy.misc
-
-
-
-
-def set_seed(seed):
-    """设置所有可能用到的随机种子以确保可复现性"""
-    random.seed(seed) 
-    np.random.seed(seed)  
-    os.environ['PYTHONHASHSEED'] = str(seed)  
-    torch.manual_seed(seed)  
-    torch.cuda.manual_seed(seed)  
-    torch.cuda.manual_seed_all(seed)  
-    torch.backends.cudnn.deterministic = True  
-    torch.backends.cudnn.benchmark = False  
-
-seed = 42  
-set_seed(seed)
-
 
 
 class conv_block(nn.Module):
@@ -92,10 +74,10 @@ class Down(nn.Module):
         self.conv = nn.Conv2d(
             in_channels=in_channels,
             out_channels=out_channels,
-            kernel_size=3,  
-            stride=2,  
-            padding=1,  
-            bias=False  
+            kernel_size=3,
+            stride=2,
+            padding=1,
+            bias=False
         )
 
         self.bn = nn.BatchNorm2d(out_channels)
@@ -119,7 +101,7 @@ class SpatialAttentionAG(nn.Module):
         max_out, _ = torch.max(x, dim=1, keepdim=True)  # [B, 1, H, W]
         combined = torch.cat([avg_out, max_out], dim=1)  # [B, 2, H, W]
         weights = self.sigmoid(self.conv(combined))  # [B, 1, H, W]
-        return x * weights  
+        return x * weights
 
 
 class Attention_block(nn.Module):
@@ -235,17 +217,17 @@ class HighPrecisionSobelEdgeConv(nn.Module):
 
         self.conv_x.weight.data.copy_(sobel_kernel_x)
         self.conv_y.weight.data.copy_(sobel_kernel_y)
-        self.conv_x.weight.requires_grad = True  
-        self.conv_y.weight.requires_grad = True  
+        self.conv_x.weight.requires_grad = True
+        self.conv_y.weight.requires_grad = True
 
-        self.alpha = nn.Parameter(torch.tensor(0.5))  
+        self.alpha = nn.Parameter(torch.tensor(0.5))
 
     def forward(self, x):
 
         edge_x = torch.abs(self.conv_x(x))
         edge_y = torch.abs(self.conv_y(x))
 
-        edge = torch.sqrt(edge_x ** 2 + edge_y ** 2 + 1e-6)  
+        edge = torch.sqrt(edge_x ** 2 + edge_y ** 2 + 1e-6)
         return x + self.alpha * x * torch.sigmoid(edge)
 
 
@@ -325,7 +307,7 @@ class CAM(nn.Module):
             nn.BatchNorm2d(in_channels // 2),
             nn.ReLU(inplace=True),
             nn.Conv2d(in_channels // 2, 1, 1),
-            nn.Sigmoid()  
+            nn.Sigmoid()
         )
         self.output_conv = nn.Sequential(
             nn.Conv2d(in_channels, in_channels, 1),
@@ -363,7 +345,7 @@ class CAM(nn.Module):
 
         # edge_weight = edge_maps.mean(dim=1, keepdim=True)  # [B,1,H,W]
 
-        combined = attn2 + y  
+        combined = attn2 + y
 
         out = self.output_conv(combined)
         return out
@@ -647,4 +629,3 @@ class CASCADE(nn.Module):
         d4 = d4
 
         return d4, d3, d2, d1
-
