@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     model.eval()
 
-    for _data_name in ['CVC-300', 'CVC-ClinicDB', 'Kvasir', 'CVC-ColonDB', 'ETIS-LaribPolypDB']:
+    for _data_name in [ 'CVC-ClinicDB', 'Kvasir', 'CVC-ColonDB', 'ETIS-LaribPolypDB']:
 
         ##### put data_path here #####
         data_path = './data/polyp/TestDataset/{}'.format(_data_name)
