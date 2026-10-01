@@ -350,7 +350,7 @@ class CAM(nn.Module):
         out = self.output_conv(combined)
         return out
 
-class BS(nn.Module):
+class BSC(nn.Module):
 
     def __init__(self, high_channels, low_channels, reduction_ratio=16, use_deformable=True):
         super().__init__()
@@ -457,9 +457,9 @@ class BS(nn.Module):
         return enhanced
 
 
-class EnhancedBoundaryAttentionP2P3(nn.Module):
+class MCE(nn.Module):
     def __init__(self, channels_p1, channels_p3, mid_channels=320):
-        super(EnhancedBoundaryAttentionP2P3, self).__init__()
+        super(MCE, self).__init__()
         self.channels_p1 = channels_p1
         self.channels_p3 = channels_p3
         self.mid_channels = mid_channels
@@ -581,7 +581,10 @@ class EnhancedBoundaryAttentionP2P3(nn.Module):
 
         return p2_out, p3_out
 
-
+# ============================================================
+# EAA: Edge-aware Attention Module
+# Implemented by Attention_block + CAM
+# ============================================================
 
 class CASCADE(nn.Module):
     def __init__(self, channels=[512, 320, 128, 64]):
@@ -608,9 +611,9 @@ class CASCADE(nn.Module):
         self.uc43 = uc(ch_in=channels[0], ch_out=channels[1], scale_factor=2)
 
         self.DOWN = Down(in_channels=channels[2], out_channels=channels[1])
-        self.jh23 = EnhancedBoundaryAttentionP2P3(channels_p1=channels[0], channels_p3=channels[2])
+        self.jh23 = MCE(channels_p1=channels[0], channels_p3=channels[2])
 
-        self.attention41 = BS(high_channels=channels[0], low_channels=channels[3])
+        self.attention41 = BSC(high_channels=channels[0], low_channels=channels[3])
 
 
     def forward(self, x, skips):
