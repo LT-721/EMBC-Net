@@ -167,7 +167,7 @@ def train(train_loader, model, optimizer, epoch, test_path, model_name='EMBC_Net
     if (epoch + 1) % 1 == 0:
         total_dice = 0
         total_images = 0
-        for dataset in ['CVC-300', 'CVC-ClinicDB', 'Kvasir', 'CVC-ColonDB', 'ETIS-LaribPolypDB']:
+        for dataset in [ 'CVC-ClinicDB', 'Kvasir', 'CVC-ColonDB', 'ETIS-LaribPolypDB']:
             # 调用测试函数获取当前数据集的平均Dice和样本数
             dataset_dice, n_images = test(model, test_path, dataset)
             # 累计加权Dice总分（按样本量加权）
@@ -194,9 +194,9 @@ def train(train_loader, model, optimizer, epoch, test_path, model_name='EMBC_Net
 
 
 if __name__ == '__main__':
-    dict_plot = {'CVC-300': [], 'CVC-ClinicDB': [], 'Kvasir': [], 'CVC-ColonDB': [], 'ETIS-LaribPolypDB': [],
+    dict_plot = { 'CVC-ClinicDB': [], 'Kvasir': [], 'CVC-ColonDB': [], 'ETIS-LaribPolypDB': [],
                  'test': []}
-    name = ['CVC-300', 'CVC-ClinicDB', 'Kvasir', 'CVC-ColonDB', 'ETIS-LaribPolypDB', 'test']
+    name = [ 'CVC-ClinicDB', 'Kvasir', 'CVC-ColonDB', 'ETIS-LaribPolypDB', 'test']
     ##################model_name#############################
     model_name = 'EMBC_Net'
     ###############################################
@@ -271,6 +271,6 @@ if __name__ == '__main__':
 
     print("#" * 20, "Start Training", "#" * 20)
 
-    for epoch in range(1, opt.epoch):
+    for epoch in range(1, opt.epoch + 1):
         adjust_lr(optimizer, opt.lr, epoch, opt.decay_rate, opt.decay_epoch)
         train(train_loader, model, optimizer, epoch, opt.test_path, model_name=model_name)
